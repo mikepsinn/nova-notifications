@@ -24,25 +24,27 @@ class NotifiableController extends ApiController
 
     public function index()
     {
-        $modelClasses = $this->classFinder->findByExtending('Illuminate\Database\Eloquent\Model', config('nova-notifications.notifiableNamespaces'))
+        $notifiableNamespaces = config('nova-notifications.notifiableNamespaces');
+        $inNameSpace = $this->classFinder->findByExtending('Illuminate\Database\Eloquent\Model',
+            $notifiableNamespaces);
+        $notifiableClasses = $inNameSpace
             ->filter(function ($className) {
                 $classInfo = new ReflectionClass($className);
 
                 return in_array('Illuminate\Notifications\Notifiable', $classInfo->getTraitNames());
-            })
-            ->map(function ($className) {
-                return [
-                    'name' => str_replace('\\', '.', $className),
-                    'options' => $className::all(),
-                ];
             });
+        $arr = $notifiableClasses->map(function ($className) {
+            return [
+                'name' => str_replace('\\', '.', $className),
+                'options' => $className::all(),
+            ];
+        });
 
-        $options = $modelClasses->map(function ($notifiable) {
+        $options = $arr->map(function ($notifiable) {
             return [
                 'name' => $notifiable['name'],
             ];
-        })
-            ->toArray();
+        })->toArray();
 
         return [
             'data' => $modelClasses->values(),

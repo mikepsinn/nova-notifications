@@ -2,11 +2,11 @@
 
 namespace Christophrumpel\NovaNotifications\Http\Controllers;
 
-use Christophrumpel\NovaNotifications\ClassFinder;
+use stdClass;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionParameter;
-use stdClass;
+use Christophrumpel\NovaNotifications\ClassFinder;
 
 class NotificationClassesController extends ApiController
 {
@@ -27,7 +27,8 @@ class NotificationClassesController extends ApiController
 
     public function index()
     {
-        return $this->classFinder->findByExtending('Illuminate\Notifications\Notification', config('nova-notifications.notificationNamespaces'))
+        $toSearch = config('nova-notifications.notificationNamespaces');
+        return $this->classFinder->findByExtending('Illuminate\Notifications\Notification', $toSearch)
             ->map(function ($className) {
                 try {
                     $classInfo = new ReflectionMethod($className, '__construct');
@@ -45,12 +46,14 @@ class NotificationClassesController extends ApiController
                     $paramTypeName = is_null($param->getType()) ? 'unknown' : $param->getType()
                         ->getName();
 
-                    if (class_exists($paramTypeName)) {
+                    $getParamOptions = false;
+                    if ($getParamOptions && class_exists($paramTypeName)) {
                         $class = new ReflectionClass($paramTypeName);
                         $fullyClassName = $class->getName();
 
                         if ($this->isEloquentModelClass($fullyClassName)) {
-                            $options = collect($fullyClassName::all())->map(function ($item) {
+                            $all = collect($fullyClassName::all());
+                            $options = $all->map(function ($item) {
                                 return [
                                     'id' => $item->id,
                                     'name' => $item->name ?? $item->id,
